@@ -1,0 +1,206 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 30px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.controls button {
+    padding: 10px 20px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s;
+}
+
+.controls button:hover {
+    background: #45a049;
+}
+
+#currentMonth {
+    font-size: 24px;
+    color: #333;
+}
+
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.day {
+    width: 30px;
+    height: 30px;
+    border-radius: 5px;
+    border: 2px solid #ddd;
+}
+
+.available {
+    background: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.booked {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.today {
+    background: #cce5ff;
+    border-color: #b8daff;
+    position: relative;
+}
+
+.weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-weight: bold;
+    padding: 15px 0;
+    background: #e9ecef;
+    border-radius: 10px 10px 0 0;
+}
+
+.days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 0 0 10px 10px;
+}
+
+.day-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: bold;
+    position: relative;
+    border: 2px solid transparent;
+}
+
+.day-cell:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.day-cell.available {
+    background: #d4edda;
+    color: #155724;
+}
+
+.day-cell.booked {
+    background: #f8d7da;
+    color: #721c24;
+    text-decoration: line-through;
+}
+
+.day-cell.today {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.3);
+}
+
+.day-cell.empty {
+    background: transparent;
+    cursor: default;
+}
+
+.day-cell.empty:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.stats {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    font-size: 18px;
+}
+
+.stats span {
+    font-weight: bold;
+    color: #333;
+}
+
+@media (max-width: 768px) {
+    .controls {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .legend {
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .stats {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .days {
+        gap: 3px;
+        padding: 5px;
+    }
+    
+    .day-cell {
+        font-size: 14px;
+    }
+}
