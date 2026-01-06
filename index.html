@@ -3207,7 +3207,7 @@
         </div>
     </div>
 
-   <script>
+  <script>
     // ========== ОСНОВНОЙ JAVASCRIPT ==========
     
     // Темная тема
@@ -3588,18 +3588,19 @@
             calendarNextBtn.addEventListener('click', () => showCalendarSlide(currentCalendarSlide + 1));
         }
         
-        // Инициализация кликов по дням
-        initCalendarDaysClick();
+        // Инициализация информационных кликов по дням
+        initCalendarInfoClicks();
     }
     
-    // Инициализация кликов по дням календаря
-    function initCalendarDaysClick() {
+    // Инициализация информационных кликов по дням (только просмотр, без редактирования)
+    function initCalendarInfoClicks() {
         calendarSlides.forEach(slide => {
             const days = slide.querySelectorAll('.calendar-day.available, .calendar-day.busy');
             days.forEach(day => {
+                day.style.cursor = 'default';
+                day.title = 'Статус: ' + (day.classList.contains('busy') ? 'Занято' : 'Свободно');
+                
                 day.addEventListener('click', function(e) {
-                    if (!window.adminMode) return;
-                    
                     e.stopPropagation();
                     const dayNumber = this.textContent.trim();
                     const monthElement = this.closest('.calendar-slide');
@@ -3608,25 +3609,145 @@
                     const month = slideIndex + 1;
                     const date = `2026-${month.toString().padStart(2, '0')}-${dayNumber.padStart(2, '0')}`;
                     
-                    if (this.classList.contains('busy')) {
-                        this.classList.remove('busy');
-                        this.classList.add('available');
-                        updateDateInGoogleSheets(date, 'available', 'admin');
-                        console.log(`✅ Освобождена дата: ${date}`);
-                    } else if (this.classList.contains('available')) {
-                        this.classList.remove('available');
-                        this.classList.add('busy');
-                        updateDateInGoogleSheets(date, 'busy', 'admin');
-                        console.log(`❌ Забронирована дата: ${date}`);
-                    }
-                    
-                    // Анимация
-                    this.style.animation = 'pulse 0.3s';
-                    setTimeout(() => {
-                        this.style.animation = '';
-                    }, 300);
+                    // Показываем информацию о дате (только просмотр)
+                    showDateInfo(date, this.classList.contains('busy') ? 'busy' : 'available');
                 });
             });
+        });
+    }
+    
+    // Показать информацию о дате
+    function showDateInfo(date, status) {
+        const [year, month, day] = date.split('-');
+        const monthNames = {
+            '01': 'Январь', '02': 'Февраль', '03': 'Март', '04': 'Апрель',
+            '05': 'Май', '06': 'Июнь', '07': 'Июль', '08': 'Август',
+            '09': 'Сентябрь', '10': 'Октябрь', '11': 'Ноябрь', '12': 'Декабрь'
+        };
+        
+        const monthName = monthNames[month];
+        const statusText = status === 'busy' ? 'Занято' : 'Свободно';
+        const statusIcon = status === 'busy' ? '❌' : '✅';
+        const statusColor = status === 'busy' ? '#e74c3c' : '#27ae60';
+        
+        // Создаем информационное окно
+        const infoModal = document.createElement('div');
+        infoModal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        infoModal.innerHTML = `
+            <div style="
+                background: white;
+                border-radius: 12px;
+                padding: 30px;
+                max-width: 400px;
+                width: 90%;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                text-align: center;
+                position: relative;
+            ">
+                <button onclick="this.closest('div[style*=\"position: fixed\"]').remove()" 
+                    style="
+                        position: absolute;
+                        top: 15px;
+                        right: 15px;
+                        background: none;
+                        border: none;
+                        font-size: 24px;
+                        cursor: pointer;
+                        color: #666;
+                    ">&times;</button>
+                
+                <div style="font-size: 48px; margin-bottom: 20px;">📅</div>
+                <h3 style="color: var(--forest-green); margin-bottom: 10px;">${day} ${monthName} 2026</h3>
+                
+                <div style="
+                    background: ${statusColor}20;
+                    color: ${statusColor};
+                    padding: 10px 20px;
+                    border-radius: 50px;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin: 15px 0;
+                    font-weight: bold;
+                    border: 2px solid ${statusColor}40;
+                ">
+                    ${statusIcon} ${statusText}
+                </div>
+                
+                <p style="color: #666; line-height: 1.6; margin-bottom: 25px;">
+                    ${status === 'busy' 
+                        ? 'Эта дата уже забронирована. Пожалуйста, выберите другую свободную дату.' 
+                        : 'Эта дата свободна для бронирования!'}
+                </p>
+                
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="scrollToBooking()" style="
+                        background: var(--forest-green);
+                        color: white;
+                        border: none;
+                        padding: 12px 25px;
+                        border-radius: 50px;
+                        cursor: pointer;
+                        font-weight: 600;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    ">
+                        <i class="fas fa-calendar-check"></i>
+                        Забронировать
+                    </button>
+                    
+                    <button onclick="this.closest('div[style*=\"position: fixed\"]').remove()" style="
+                        background: transparent;
+                        color: var(--forest-green);
+                        border: 2px solid var(--forest-green);
+                        padding: 12px 25px;
+                        border-radius: 50px;
+                        cursor: pointer;
+                        font-weight: 600;
+                    ">
+                        Закрыть
+                    </button>
+                </div>
+                
+                <p style="font-size: 12px; color: #999; margin-top: 20px;">
+                    <i class="fas fa-info-circle"></i>
+                    Для изменения статуса даты откройте Google Таблицу
+                </p>
+            </div>
+        `;
+        
+        document.body.appendChild(infoModal);
+        
+        // Закрытие по клику на фон
+        infoModal.addEventListener('click', (e) => {
+            if (e.target === infoModal) {
+                infoModal.remove();
+            }
+        });
+    }
+    
+    // Прокрутка к разделу бронирования
+    function scrollToBooking() {
+        document.querySelector('#booking').scrollIntoView({ behavior: 'smooth' });
+        // Закрываем все модальные окна
+        document.querySelectorAll('div[style*="position: fixed"]').forEach(modal => {
+            if (modal.style.background.includes('rgba(0,0,0,0.7)')) {
+                modal.remove();
+            }
         });
     }
     
@@ -3700,7 +3821,7 @@
                     return data;
                 } else if (data.error && data.error.includes('Таблица не найдена')) {
                     console.log('📋 Таблица не найдена, требуется инициализация');
-                    showNotification('Календарь не инициализирован. Нажмите Ctrl+Alt+I', 'warning');
+                    showNotification('Календарь не инициализирован в Google Sheets', 'warning');
                     return null;
                 } else {
                     throw new Error('Некорректные данные от сервера');
@@ -3749,236 +3870,7 @@
         }
     }
     
-    // Обновить статус даты в Google Sheets
-    async function updateDateInGoogleSheets(date, status, user = 'admin') {
-        console.log(`🔄 Обновление даты ${date} → ${status}`);
-        
-        // Сначала обновляем локально для мгновенного отклика
-        updateDateLocally(date, status);
-        
-        // Пытаемся отправить на сервер
-        try {
-            const params = new URLSearchParams({
-                action: 'updateDate',
-                date: date,
-                status: status,
-                user: user,
-                t: Date.now()
-            });
-            
-            // Используем no-cors для избежания CORS ошибок
-            await fetch(GOOGLE_SHEETS_API.url, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: params.toString()
-            });
-            
-            // При успехе обновляем кеш
-            saveToLocalCache(date, status);
-            
-            console.log('✅ Дата обновлена на сервере:', date);
-            return true;
-            
-        } catch (error) {
-            console.warn('⚠️ Не удалось обновить на сервере:', error.message);
-            
-            // Сохраняем в очередь на синхронизацию
-            addToSyncQueue(date, status, user);
-            
-            return false;
-        }
-    }
-    
-    // Массовое обновление
-    async function batchUpdateToGoogleSheets(updates, user = 'admin') {
-        console.log('🔄 Массовое обновление:', Object.keys(updates).length, 'дат');
-        
-        const batchData = {
-            action: 'updateBatch',
-            dates: updates,
-            user: user,
-            timestamp: new Date().toISOString()
-        };
-        
-        try {
-            await fetch(GOOGLE_SHEETS_API.url, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(batchData)
-            });
-            
-            // Обновляем кеш
-            Object.keys(updates).forEach(date => {
-                saveToLocalCache(date, updates[date]);
-            });
-            
-            // Очищаем очередь
-            localStorage.removeItem('sync_queue');
-            
-            console.log('✅ Массовое обновление завершено');
-            showNotification('Изменения сохранены в облако', 'success');
-            
-            return true;
-            
-        } catch (error) {
-            console.warn('⚠️ Не удалось выполнить массовое обновление:', error.message);
-            
-            // Сохраняем каждое изменение в очередь
-            Object.keys(updates).forEach(date => {
-                addToSyncQueue(date, updates[date], user);
-            });
-            
-            return false;
-        }
-    }
-    
     // ========== ЛОКАЛЬНОЕ ХРАНИЛИЩЕ ==========
-    
-    // Обновить дату локально
-    function updateDateLocally(date, status) {
-        const [year, month, day] = date.split('-');
-        const monthNum = parseInt(month);
-        const dayNum = parseInt(day);
-        
-        // Обновляем DOM
-        if (calendarSlides && calendarSlides[monthNum - 1]) {
-            const slide = calendarSlides[monthNum - 1];
-            const days = slide.querySelectorAll('.calendar-day');
-            
-            days.forEach(dayElement => {
-                if (dayElement.textContent.trim() === dayNum.toString()) {
-                    const isToday = dayElement.classList.contains('today');
-                    
-                    dayElement.classList.remove('available', 'busy');
-                    dayElement.classList.add(status);
-                    
-                    if (isToday) {
-                        dayElement.classList.add('today');
-                    }
-                    
-                    // Анимация
-                    dayElement.style.animation = 'pulse 0.5s';
-                    setTimeout(() => {
-                        dayElement.style.animation = '';
-                    }, 500);
-                }
-            });
-        }
-        
-        // Обновляем локальные данные
-        if (calendarData && calendarData.dates && calendarData.dates[date]) {
-            calendarData.dates[date].status = status;
-            calendarData.dates[date].updated = new Date().toISOString();
-            calendarData.dates[date].user = 'local';
-        }
-    }
-    
-    // Сохранить в локальный кеш
-    function saveToLocalCache(date, status) {
-        const cacheKey = 'calendar_cache_v2';
-        const cached = localStorage.getItem(cacheKey);
-        
-        if (cached) {
-            const data = JSON.parse(cached);
-            if (data.dates && data.dates[date]) {
-                data.dates[date].status = status;
-                data.dates[date].updated = new Date().toISOString();
-                localStorage.setItem(cacheKey, JSON.stringify(data));
-            }
-        }
-        
-        // Сохраняем в историю изменений
-        const historyKey = 'calendar_history';
-        let history = JSON.parse(localStorage.getItem(historyKey) || '[]');
-        
-        history.push({
-            date: date,
-            status: status,
-            timestamp: new Date().toISOString(),
-            synced: isOnline
-        });
-        
-        // Ограничиваем историю 100 записями
-        if (history.length > 100) {
-            history = history.slice(-100);
-        }
-        
-        localStorage.setItem(historyKey, JSON.stringify(history));
-    }
-    
-    // Очередь синхронизации
-    function addToSyncQueue(date, status, user = 'unknown') {
-        const queueKey = 'calendar_sync_queue';
-        let queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
-        
-        queue.push({
-            date: date,
-            status: status,
-            user: user,
-            timestamp: new Date().toISOString(),
-            attempts: 0
-        });
-        
-        // Ограничиваем очередь 50 записями
-        if (queue.length > 50) {
-            queue = queue.slice(-50);
-        }
-        
-        localStorage.setItem(queueKey, JSON.stringify(queue));
-        
-        // Показываем индикатор офлайн-работы
-        showNotification('Работа в офлайн-режиме. Изменения будут синхронизированы позже.', 'warning');
-        
-        console.log('📋 В очереди синхронизации:', queue.length, 'записей');
-    }
-    
-    // Синхронизировать очередь
-    async function syncQueue() {
-        const queueKey = 'calendar_sync_queue';
-        const queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
-        
-        if (queue.length === 0) return;
-        
-        console.log('🔄 Синхронизация очереди:', queue.length, 'записей');
-        
-        const updates = {};
-        const failed = [];
-        
-        for (const item of queue) {
-            try {
-                await updateDateInGoogleSheets(item.date, item.status, item.user);
-                updates[item.date] = item.status;
-                
-                // Задержка между запросами
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-            } catch (error) {
-                console.warn('❌ Не удалось синхронизировать:', item.date, error.message);
-                item.attempts = (item.attempts || 0) + 1;
-                
-                // Если попыток меньше 3, оставляем в очереди
-                if (item.attempts < 3) {
-                    failed.push(item);
-                }
-            }
-        }
-        
-        // Обновляем очередь (оставляем только неудачные)
-        if (failed.length > 0) {
-            localStorage.setItem(queueKey, JSON.stringify(failed));
-            console.log('📋 Осталось в очереди:', failed.length, 'записей');
-        } else {
-            localStorage.removeItem(queueKey);
-            console.log('✅ Очередь синхронизирована полностью');
-            showNotification('Очередь синхронизирована с Google Sheets!', 'success');
-        }
-    }
     
     // Загрузить из резервной копии
     function loadFromBackup() {
@@ -4043,6 +3935,9 @@
                         
                         dayElement.classList.remove('available', 'busy');
                         dayElement.classList.add(status);
+                        
+                        // Обновляем всплывающую подсказку
+                        dayElement.title = 'Статус: ' + (status === 'busy' ? 'Занято' : 'Свободно');
                         
                         if (isToday) {
                             dayElement.classList.add('today');
@@ -4175,10 +4070,9 @@
                 to { transform: translateX(100%); opacity: 0; }
             }
             
-            @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.1); }
-                100% { transform: scale(1); }
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
             }
             
             .calendar-status-online {
@@ -4212,11 +4106,6 @@
                 console.log('✅ Соединение с Google Sheets установлено');
                 // Загружаем данные с сервера
                 await loadCalendarFromGoogleSheets();
-                
-                // Синхронизируем очередь, если есть
-                if (localStorage.getItem('calendar_sync_queue')) {
-                    await syncQueue();
-                }
             } else {
                 // Работаем офлайн
                 console.log('📴 Работа в офлайн-режиме');
@@ -4247,10 +4136,6 @@
             if (isOnline) {
                 try {
                     await loadCalendarFromGoogleSheets();
-                    
-                    if (localStorage.getItem('calendar_sync_queue')) {
-                        await syncQueue();
-                    }
                 } catch (error) {
                     console.log('Автосинхронизация пропущена');
                 }
@@ -4265,7 +4150,6 @@
             updateStatusIndicator();
             
             await loadCalendarFromGoogleSheets();
-            await syncQueue();
         });
         
         window.addEventListener('offline', () => {
@@ -4274,81 +4158,6 @@
             showNotification('Работа в офлайн-режиме', 'warning');
             updateStatusIndicator();
         });
-    }
-    
-    // Настройка автосохранения
-    function setupAutoSave() {
-        // Сохраняем при изменении даты через админ-панель
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('calendar-day') && 
-                (e.target.classList.contains('available') || e.target.classList.contains('busy')) &&
-                window.adminMode) {
-                
-                // Задержка перед сохранением
-                clearTimeout(window.saveTimeout);
-                window.saveTimeout = setTimeout(() => {
-                    saveCalendarState();
-                }, 1000);
-            }
-        });
-        
-        // Сохраняем перед закрытием страницы
-        window.addEventListener('beforeunload', () => {
-            saveCalendarState();
-        });
-    }
-    
-    // Сохранить состояние календаря
-    function saveCalendarState() {
-        if (!calendarSlides) return;
-        
-        const calendarState = {
-            lastUpdated: new Date().toISOString(),
-            version: '2.0',
-            months: {}
-        };
-        
-        calendarSlides.forEach((slide, monthIndex) => {
-            const monthNumber = monthIndex + 1;
-            const monthKey = `2026-${monthNumber.toString().padStart(2, '0')}`;
-            const days = slide.querySelectorAll('.calendar-day');
-            
-            const monthData = {};
-            
-            days.forEach(day => {
-                const dayNumber = day.textContent.trim();
-                if (dayNumber && !isNaN(dayNumber)) {
-                    const status = day.classList.contains('busy') ? 'busy' : 
-                                  day.classList.contains('available') ? 'available' : null;
-                    
-                    if (status) {
-                        monthData[dayNumber] = status;
-                    }
-                }
-            });
-            
-            if (Object.keys(monthData).length > 0) {
-                calendarState.months[monthKey] = monthData;
-            }
-        });
-        
-        // Сохраняем локально как резервную копию
-        const backupKey = 'calendar_backup_' + new Date().toISOString().split('T')[0];
-        localStorage.setItem(backupKey, JSON.stringify(calendarState));
-        localStorage.setItem('calendar_state', JSON.stringify(calendarState));
-        
-        // Отправляем массовое обновление в Google Sheets
-        const updates = {};
-        Object.keys(calendarState.months).forEach(monthKey => {
-            Object.keys(calendarState.months[monthKey]).forEach(day => {
-                const date = `${monthKey}-${day.padStart(2, '0')}`;
-                updates[date] = calendarState.months[monthKey][day];
-            });
-        });
-        
-        if (Object.keys(updates).length > 0) {
-            batchUpdateToGoogleSheets(updates, 'admin_save');
-        }
     }
     
     // Обновить индикатор статуса
@@ -4395,392 +4204,70 @@
         }
     }
     
-    // ========== АДМИН-ПАНЕЛЬ ==========
-    window.adminMode = false;
-    
+    // ========== УПРАВЛЕНИЕ КАЛЕНДАРЕМ ==========
     window.chaletAdmin = {
-        toggleDate: function(dateStr) {
-            if (!window.adminMode) {
-                console.warn('Админ-режим не активирован! Используйте Ctrl+Alt+]');
-                alert('Админ-режим не активирован! Используйте Ctrl+Alt+]');
-                return;
-            }
-            
-            const [year, month, day] = dateStr.split('-').map(Number);
-            const monthIndex = month - 1;
-            
-            if (monthIndex >= 0 && monthIndex < calendarSlides.length) {
-                // Показываем нужный месяц
-                const slider = document.querySelector('.calendar-slider');
-                if (slider) {
-                    slider.style.transform = `translateX(-${monthIndex * 100}%)`;
-                }
-                
-                if (calendarDots) {
-                    calendarDots.forEach(dot => dot.classList.remove('active'));
-                    if (calendarDots[monthIndex]) {
-                        calendarDots[monthIndex].classList.add('active');
-                    }
-                }
-                
-                currentCalendarSlide = monthIndex;
-                
-                // Находим и меняем день
-                setTimeout(() => {
-                    const currentSlide = calendarSlides[monthIndex];
-                    if (currentSlide) {
-                        const days = currentSlide.querySelectorAll('.calendar-day');
-                        days.forEach(dayElement => {
-                            if (dayElement.textContent.trim() === day.toString()) {
-                                if (dayElement.classList.contains('busy')) {
-                                    dayElement.classList.remove('busy');
-                                    dayElement.classList.add('available');
-                                    updateDateInGoogleSheets(dateStr, 'available', 'admin');
-                                    console.log(`✅ Дата ${dateStr} освобождена`);
-                                } else if (dayElement.classList.contains('available')) {
-                                    dayElement.classList.remove('available');
-                                    dayElement.classList.add('busy');
-                                    updateDateInGoogleSheets(dateStr, 'busy', 'admin');
-                                    console.log(`❌ Дата ${dateStr} забронирована`);
-                                }
-                                
-                                dayElement.style.animation = 'pulse 0.5s';
-                                setTimeout(() => {
-                                    dayElement.style.animation = '';
-                                }, 500);
-                            }
-                        });
-                    }
-                }, 300);
-            }
-        },
-        
-        toggleDateByDay: function(dayNumber, month = 1) {
-            if (!window.adminMode) {
-                console.warn('Админ-режим не активирован!');
-                return;
-            }
-            
-            const formattedDate = `2026-${month.toString().padStart(2, '0')}-${dayNumber.toString().padStart(2, '0')}`;
-            this.toggleDate(formattedDate);
-        },
-        
-        getBookings: function() {
-            if (!window.adminMode) {
-                console.warn('Админ-режим не активирован!');
-                return null;
-            }
-            
-            let totalBusyDays = 0;
-            let totalAvailableDays = 0;
-            
-            if (calendarSlides) {
-                calendarSlides.forEach(slide => {
-                    const busyDays = slide.querySelectorAll('.calendar-day.busy').length;
-                    const availableDays = slide.querySelectorAll('.calendar-day.available').length;
-                    totalBusyDays += busyDays;
-                    totalAvailableDays += availableDays;
-                });
-            }
-            
-            const totalDays = totalBusyDays + totalAvailableDays;
-            const occupancyRate = totalDays > 0 ? Math.round((totalBusyDays / totalDays) * 100) : 0;
-            
-            return {
-                totalBookings: totalBusyDays,
-                availableDays: totalAvailableDays,
-                occupancyRate: occupancyRate + '%',
-                months: calendarSlides ? calendarSlides.length : 0
-            };
-        },
-        
-        enableClickToggle: function() {
-            if (!window.adminMode) {
-                console.warn('Админ-режим не активирован!');
-                return;
-            }
-            
-            console.log('🖱️ Клик-режим активирован');
-            alert('Клик-режим активирован! Теперь можно кликать по датам для изменения статуса.');
-        },
-        
-        disableClickToggle: function() {
-            console.log('🖱️ Клик-режим отключен');
-        },
-        
-        syncNow: async function() {
-            if (!window.adminMode) {
-                alert('Включите админ-режим: Ctrl+Alt+]');
-                return;
-            }
-            
-            showLoadingIndicator(true);
-            try {
-                await loadCalendarFromGoogleSheets();
-                await syncQueue();
-                showNotification('Синхронизация завершена', 'success');
-            } catch (error) {
-                showNotification('Ошибка синхронизации', 'error');
-            } finally {
-                showLoadingIndicator(false);
-            }
-        },
-        
-        forceSave: function() {
-            if (!window.adminMode) {
-                alert('Включите админ-режим: Ctrl+Alt+]');
-                return;
-            }
-            
-            saveCalendarState();
-            showNotification('Календарь сохранен локально!', 'success');
-        },
-        
-        clearQueue: function() {
-            if (!window.adminMode) {
-                alert('Включите админ-режим: Ctrl+Alt+]');
-                return;
-            }
-            
-            localStorage.removeItem('calendar_sync_queue');
-            showNotification('Очередь синхронизации очищена', 'warning');
-        },
-        
-        exportToGoogleSheets: function() {
-            if (!window.adminMode) {
-                alert('Включите админ-режим: Ctrl+Alt+]');
-                return;
-            }
-            
-            saveCalendarState();
-            showNotification('Экспорт в Google Sheets начат', 'info');
-        },
-        
+        // Только функции для просмотра
         showStats: function() {
-            if (!window.adminMode) {
-                alert('Включите админ-режим: Ctrl+Alt+]');
+            if (!calendarData) {
+                alert('Данные не загружены');
                 return;
             }
             
-            const stats = this.getBookings();
-            if (!stats) return;
+            const total = Object.keys(calendarData.dates).length;
+            let available = 0;
+            let busy = 0;
             
-            const queueLength = JSON.parse(localStorage.getItem('calendar_sync_queue') || '[]').length;
+            Object.values(calendarData.dates).forEach(date => {
+                if (date.status === 'available') available++;
+                if (date.status === 'busy') busy++;
+            });
             
-            const message = `
+            const occupancy = total > 0 ? Math.round((busy / total) * 100) : 0;
+            
+            const stats = `
 📊 СТАТИСТИКА КАЛЕНДАРЯ:
 
-Всего занято дней: ${stats.totalBookings}
-Свободных дней: ${stats.availableDays}
-Загруженность: ${stats.occupancyRate}
-Месяцев: ${stats.months}
+Всего дней: ${total}
+Свободно: ${available}
+Занято: ${busy}
+Загруженность: ${occupancy}%
 
 🔄 СИНХРОНИЗАЦИЯ:
 Статус: ${isOnline ? '✅ Онлайн' : '⚠️ Офлайн'}
-В очереди: ${queueLength} записей
 Последняя синхронизация: ${lastSyncTime ? lastSyncTime.toLocaleString('ru-RU') : 'никогда'}
-
-💾 ХРАНИЛИЩЕ:
-Используется: ${Math.round(JSON.stringify(localStorage).length / 1024)} KB
             `.trim();
             
-            alert(message);
+            alert(stats);
         },
         
-        clearCache: function() {
-            if (!window.adminMode) {
-                alert('Включите админ-режим: Ctrl+Alt+]');
-                return;
-            }
+        // Показать инструкцию по редактированию
+        showEditInstructions: function() {
+            const instructions = `
+📝 ИНСТРУКЦИЯ ПО РЕДАКТИРОВАНИЮ КАЛЕНДАРЯ:
+
+Для изменения статуса дат (занято/свободно):
+
+1. Откройте Google Таблицу:
+   ${GOOGLE_SHEETS_API.url.replace('/exec', '')}
+
+2. Найдите нужную дату в колонке "date"
+
+3. В колонке "status" измените значение:
+   - "available" - свободно
+   - "busy" - занято
+
+4. Изменения автоматически синхронизируются с сайтом
+   (синхронизация происходит каждые 5 минут)
+
+⚠️ ВНИМАНИЕ:
+- Только администратор может редактировать таблицу
+- Изменения на сайте появляются после синхронизации
+- Для мгновенной синхронизации обновите страницу сайта
+            `.trim();
             
-            if (confirm('Очистить весь кеш календаря?\nЭто удалит локальные данные.')) {
-                const keys = Object.keys(localStorage).filter(key => 
-                    key.startsWith('calendar_') || 
-                    key.startsWith('sync_')
-                );
-                
-                keys.forEach(key => localStorage.removeItem(key));
-                
-                showNotification('Кеш очищен. Перезагрузка...', 'warning');
-                setTimeout(() => location.reload(), 1000);
-            }
-        },
-        
-        // Инициализация календаря в Google Sheets
-        initGoogleSheets: async function() {
-            if (!window.adminMode) {
-                alert('Включите админ-режим: Ctrl+Alt+]');
-                return;
-            }
-            
-            if (confirm('Инициализировать календарь в Google Sheets?\nЭто создаст таблицу со всеми днями 2026 года.')) {
-                showLoadingIndicator(true);
-                try {
-                    const response = await fetch(`${GOOGLE_SHEETS_API.url}?action=init&t=${Date.now()}`);
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        showNotification(`Календарь инициализирован! Создано ${data.days} дней.`, 'success');
-                        setTimeout(() => location.reload(), 2000);
-                    } else {
-                        showNotification('Ошибка: ' + (data.error || 'неизвестная ошибка'), 'error');
-                    }
-                } catch (error) {
-                    showNotification('Ошибка подключения к Google Sheets', 'error');
-                } finally {
-                    showLoadingIndicator(false);
-                }
-            }
-        },
-        
-        manageCalendar: {
-            exportData: function() {
-                if (!window.adminMode) {
-                    console.warn('Админ-режим не активирован!');
-                    return;
-                }
-                
-                const calendarState = JSON.parse(localStorage.getItem('calendar_state') || '{}');
-                const dataStr = JSON.stringify(calendarState, null, 2);
-                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-                
-                const exportFileDefaultName = `chalet-calendar-backup-${new Date().toISOString().split('T')[0]}.json`;
-                
-                const linkElement = document.createElement('a');
-                linkElement.setAttribute('href', dataUri);
-                linkElement.setAttribute('download', exportFileDefaultName);
-                linkElement.click();
-                
-                console.log('💾 Данные календаря экспортированы');
-                alert('Данные календаря успешно экспортированы!');
-            },
-            
-            importData: function() {
-                if (!window.adminMode) {
-                    console.warn('Админ-режим не активирован!');
-                    return;
-                }
-                
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = '.json';
-                
-                input.onchange = e => {
-                    const file = e.target.files[0];
-                    const reader = new FileReader();
-                    
-                    reader.onload = event => {
-                        try {
-                            const importedData = JSON.parse(event.target.result);
-                            localStorage.setItem('calendar_state', JSON.stringify(importedData));
-                            
-                            // Применяем данные
-                            if (importedData.months) {
-                                applyCalendarState(importedData);
-                            }
-                            
-                            console.log('📥 Данные календаря импортированы');
-                            alert('Данные календаря успешно импортированы и применены!');
-                        } catch (error) {
-                            alert('Ошибка при импорте данных! Проверьте формат файла.');
-                            console.error('Ошибка импорта:', error);
-                        }
-                    };
-                    
-                    reader.readAsText(file);
-                };
-                
-                input.click();
-            },
-            
-            reset: function() {
-                if (!window.adminMode) {
-                    console.warn('Админ-режим не активирован!');
-                    return;
-                }
-                
-                if (confirm('Сбросить календарь к значениям по умолчанию?\nЭто действие нельзя отменить.')) {
-                    localStorage.removeItem('calendar_state');
-                    localStorage.removeItem('calendar_cache_v2');
-                    localStorage.removeItem('calendar_cache_time');
-                    location.reload();
-                }
-            },
-            
-            stats: function() {
-                if (!window.adminMode) {
-                    console.warn('Админ-режим не активирован!');
-                    return;
-                }
-                
-                const stats = window.chaletAdmin.getBookings();
-                
-                let message = `📊 Статистика календаря:\n\n`;
-                message += `Всего забронировано дней: ${stats.totalBookings}\n`;
-                message += `Свободных дней: ${stats.availableDays}\n`;
-                message += `Загруженность: ${stats.occupancyRate}\n`;
-                message += `Месяцев в календаре: ${stats.months}\n`;
-                
-                alert(message);
-                console.log('📊 Статистика календаря:', stats);
-            },
-            
-            save: function() {
-                if (!window.adminMode) {
-                    console.warn('Админ-режим не активирован!');
-                    return;
-                }
-                
-                saveCalendarState();
-                alert('Состояние календаря сохранено!');
-            },
-            
-            load: function() {
-                if (!window.adminMode) {
-                    console.warn('Админ-режим не активирован!');
-                    return;
-                }
-                
-                const saved = localStorage.getItem('calendar_state');
-                if (saved) {
-                    const calendarState = JSON.parse(saved);
-                    applyCalendarState(calendarState);
-                    alert('Состояние календаря загружено из сохранения!');
-                } else {
-                    alert('Сохраненное состояние календаря не найдено!');
-                }
-            }
+            alert(instructions);
         }
     };
-    
-    // Применить состояние календаря
-    function applyCalendarState(calendarState) {
-        if (!calendarState.months || !calendarSlides) return;
-        
-        Object.keys(calendarState.months).forEach(monthKey => {
-            const [year, month] = monthKey.split('-').map(Number);
-            const monthIndex = month - 1;
-            
-            if (monthIndex >= 0 && monthIndex < calendarSlides.length) {
-                const slide = calendarSlides[monthIndex];
-                const days = slide.querySelectorAll('.calendar-day');
-                const monthData = calendarState.months[monthKey];
-                
-                days.forEach(day => {
-                    const dayNumber = day.textContent.trim();
-                    if (dayNumber && monthData[dayNumber]) {
-                        day.classList.remove('available', 'busy');
-                        
-                        if (monthData[dayNumber] === 'busy') {
-                            day.classList.add('busy');
-                        } else if (monthData[dayNumber] === 'available') {
-                            day.classList.add('available');
-                        }
-                    }
-                });
-            }
-        });
-    }
     
     // ========== ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ ==========
     
@@ -4801,112 +4288,56 @@
             await initCalendarWithGoogleSheets();
         }, 1500);
         
-        // Автосохранение при изменении
-        setupAutoSave();
+        // Добавляем кнопку "Как редактировать" в футер
+        addEditInstructionsButton();
         
-        // Секретные команды для администратора
-        document.addEventListener('keydown', (e) => {
-            // Включение/выключение админ-режима
-            if (e.ctrlKey && e.altKey && e.key === ']') {
-                e.preventDefault();
-                window.adminMode = !window.adminMode;
-                toggleAdminMode();
-            }
-            
-            // Инициализация Google Sheets
-            if (e.ctrlKey && e.altKey && e.key === 'i') {
-                e.preventDefault();
-                if (window.adminMode) {
-                    window.chaletAdmin.initGoogleSheets();
-                }
-            }
-            
-            // Экспорт данных
-            if (e.ctrlKey && e.key === 'e') {
-                e.preventDefault();
-                if (window.adminMode) {
-                    window.chaletAdmin.manageCalendar.exportData();
-                }
-            }
-            
-            // Синхронизация
-            if (e.ctrlKey && e.key === 's') {
-                e.preventDefault();
-                if (window.adminMode) {
-                    window.chaletAdmin.syncNow();
-                }
-            }
-            
-            // Статистика
-            if (e.ctrlKey && e.key === 't') {
-                e.preventDefault();
-                if (window.adminMode) {
-                    window.chaletAdmin.showStats();
-                }
-            }
-        });
-        
-        // Автоактивация админ-режима по URL
-        if (window.location.search.includes('admin=chalet123')) {
-            window.adminMode = true;
-            toggleAdminMode();
-        }
-        
-        console.log('🚀 Секретные команды для администратора:');
-        console.log('1. Ctrl+Alt+] - включить/выключить админ-режим');
-        console.log('2. Ctrl+Alt+I - инициализировать Google Sheets');
-        console.log('3. Ctrl+S - синхронизировать сейчас');
-        console.log('4. Ctrl+E - экспорт данных');
-        console.log('5. Ctrl+T - статистика');
-        console.log('6. Добавьте ?admin=chalet123 к URL для автоматической активации');
+        console.log('📋 Редактирование календаря доступно только через Google Таблицы');
     });
     
-    // Включение/выключение админ-режима
-    function toggleAdminMode() {
-        if (window.adminMode) {
-            document.body.style.border = '3px solid #2ecc71';
-            console.log('🔧 Админ-режим активирован!');
-            
-            // Включаем клик-режим
-            if (window.chaletAdmin.enableClickToggle) {
-                window.chaletAdmin.enableClickToggle();
-            }
-            
-            const adminAlert = document.createElement('div');
-            adminAlert.id = 'adminAlert';
-            adminAlert.style.cssText = `
-                position: fixed;
-                top: 10px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: #2ecc71;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 5px;
-                z-index: 9999;
-                font-weight: bold;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-                text-align: center;
+    // Добавить кнопку инструкций в футер
+    function addEditInstructionsButton() {
+        const footer = document.querySelector('footer .copyright');
+        if (footer) {
+            const instructionsBtn = document.createElement('button');
+            instructionsBtn.innerHTML = `
+                <div style="
+                    background: transparent;
+                    border: 1px solid var(--light-brown);
+                    color: var(--light-brown);
+                    padding: 8px 15px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    margin-top: 10px;
+                    transition: all 0.3s;
+                ">
+                    <i class="fas fa-edit"></i>
+                    Как редактировать календарь?
+                </div>
             `;
-            adminAlert.innerHTML = '🔧 Админ-режим активирован<br><small>Кликайте по датам в календаре</small>';
-            document.body.appendChild(adminAlert);
             
-            setTimeout(() => {
-                if (adminAlert.parentNode) {
-                    adminAlert.remove();
-                }
-            }, 5000);
-        } else {
-            document.body.style.border = '';
-            if (window.chaletAdmin.disableClickToggle) {
-                window.chaletAdmin.disableClickToggle();
-            }
-            const adminAlert = document.getElementById('adminAlert');
-            if (adminAlert) adminAlert.remove();
+            instructionsBtn.onclick = () => {
+                window.chaletAdmin.showEditInstructions();
+            };
+            
+            instructionsBtn.onmouseover = (e) => {
+                e.target.style.backgroundColor = 'var(--light-brown)';
+                e.target.style.color = 'white';
+            };
+            
+            instructionsBtn.onmouseout = (e) => {
+                e.target.style.backgroundColor = 'transparent';
+                e.target.style.color = 'var(--light-brown)';
+            };
+            
+            footer.appendChild(instructionsBtn);
         }
     }
     
-    // ========== ОТДЕЛЬНЫЕ СТРАНИЦЫ (ФУНКЦИИ НЕ ТРОГАЕМ) ==========
+    // ========== ОТДЕЛЬНЫЕ СТРАНИЦЫ ==========
     
     function showPage(pageType) {
         document.querySelectorAll('section, footer, header').forEach(el => {
@@ -5081,17 +4512,119 @@
                 
             case 'reviews':
                 pageTitle = 'Отзывы';
-                // ... остальной код страницы отзывов (оставьте как было)
+                pageHTML = `
+                    <div class="page-header">
+                        <h1 class="section-title">Отзывы наших гостей</h1>
+                        <p class="section-subtitle">Что говорят те, кто уже отдохнул в наших шале</p>
+                    </div>
+                    <div class="page-content">
+                        <div class="review-item">
+                            <div class="review-header">
+                                <div class="review-author">Анна и Дмитрий, Москва</div>
+                                <div class="review-date">15 марта 2024</div>
+                            </div>
+                            <div class="review-text">
+                                <p>Отдыхали в шале "Тюленье" на 8 марта. Впечатления потрясающие! Особенно понравилась баня с купелью на улице - невероятные ощущения. Персонал очень внимательный, все вопросы решались мгновенно. Обязательно вернемся летом!</p>
+                            </div>
+                        </div>
+                        
+                        <div class="review-item">
+                            <div class="review-header">
+                                <div class="review-author">Семья Петровых, Санкт-Петербург</div>
+                                <div class="review-date">3 марта 2024</div>
+                            </div>
+                            <div class="review-text">
+                                <p>Брали шале "Медвежье" на неделю с детьми. Дети в восторге от природы, катались на лыжах, кормили белок. Взрослые оценили банный комплекс и уютные вечера у камина. Кухня оборудована всем необходимым. Отличное место для семейного отдыха!</p>
+                            </div>
+                        </div>
+                        
+                        <div class="review-item">
+                            <div class="review-header">
+                                <div class="review-author">Ольга, Екатеринбург</div>
+                                <div class="review-date">25 февраля 2024</div>
+                            </div>
+                            <div class="review-text">
+                                <p>Приезжали на романтический уикенд. Шале "Лесное" оказалось именно таким, как на фотографиях - уютное, чистое, с прекрасным видом из окна. Особенно понравился завтрак в постель - очень милый бонус! Спасибо за прекрасные выходные.</p>
+                            </div>
+                        </div>
+                        
+                        <h2 style="margin-top: 40px;">Оставить отзыв</h2>
+                        <p>Поделитесь своими впечатлениями об отдыхе в наших шале. Ваш отзыв поможет другим гостям сделать правильный выбор.</p>
+                        
+                        <div style="text-align: center; margin-top: 40px;">
+                            <button onclick="goBack()" class="book-btn">
+                                <i class="fas fa-arrow-left"></i>
+                                Вернуться на главную
+                            </button>
+                        </div>
+                    </div>
+                `;
                 break;
                 
             case 'faq':
                 pageTitle = 'Частые вопросы';
-                // ... остальной код FAQ (оставьте как было)
+                pageHTML = `
+                    <div class="page-header">
+                        <h1 class="section-title">Часто задаваемые вопросы</h1>
+                        <p class="section-subtitle">Ответы на самые популярные вопросы об отдыхе в наших шале</p>
+                    </div>
+                    <div class="page-content">
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="toggleFAQ(this)">
+                                Какое время заезда и выезда?
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="faq-answer" style="display: none;">
+                                <p>Заезд с 14:00, выезд до 12:00. При возможности раннего заезда или позднего выезда мы всегда идем навстречу гостям - уточняйте при бронировании.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="toggleFAQ(this)">
+                                Что включено в стоимость проживания?
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="faq-answer" style="display: none;">
+                                <p>В стоимость входит проживание, пользование баней (по расписанию), постельное белье и полотенца, пользование кухней и всей техникой, парковка, Wi-Fi.</p>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 40px;">
+                            <button onclick="goBack()" class="book-btn">
+                                <i class="fas fa-arrow-left"></i>
+                                Вернуться на главную
+                            </button>
+                        </div>
+                    </div>
+                `;
                 break;
                 
             case 'privacy':
                 pageTitle = 'Политика конфиденциальности';
-                // ... остальной код политики (оставьте как было)
+                pageHTML = `
+                    <div class="page-header">
+                        <h1 class="section-title">Политика конфиденциальности</h1>
+                        <p class="section-subtitle">Как мы защищаем и используем ваши персональные данные</p>
+                    </div>
+                    <div class="page-content">
+                        <h2>1. Общие положения</h2>
+                        <p>Настоящая Политика конфиденциальности персональных данных (далее – Политика конфиденциальности) действует в отношении всей информации, которую сайт Шале-Тюлень, расположенный на доменном имени chalet-seal.ru, может получить о Пользователе во время использования сайта.</p>
+                        
+                        <h2>2. Персональные данные Пользователей, которые обрабатываются</h2>
+                        <p>В рамках настоящей Политики под «персональными данными Пользователя» понимаются:</p>
+                        <ul>
+                            <li>Персональные данные, которые Пользователь предоставляет о себе самостоятельно при оформлении заявки на бронирование или в процессе использования Сервисов сайта</li>
+                            <li>Данные, которые автоматически передаются Сервисам сайта в процессе их использования с помощью установленного на устройстве Пользователя программного обеспечения</li>
+                        </ul>
+                        
+                        <div style="text-align: center; margin-top: 40px;">
+                            <button onclick="goBack()" class="book-btn">
+                                <i class="fas fa-arrow-left"></i>
+                                Вернуться на главную
+                            </button>
+                        </div>
+                    </div>
+                `;
                 break;
         }
         
@@ -5224,6 +4757,6 @@
             });
         }
     }
-    </script>
+</script>
 </body>
 </html>
